@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>SURVIVAL SCHOOL</title>
+<style>
+:root{--bg:#101827;--panel:#1c2a40;--panel2:#263953;--gold:#ffd166;--blue:#5cc8ff;--white:#f4f7fb;--muted:#a9bad0}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(135deg,#101827,#182b3d);color:var(--white);font-family:system-ui,Arial,sans-serif}
+header{padding:18px 14px;text-align:center;background:#0c1421;border-bottom:3px solid #304b68}
+h1{margin:0;color:var(--gold);letter-spacing:3px;font-size:clamp(25px,5vw,42px)}header p{margin:5px 0 0;color:var(--muted)}
+main{max-width:1100px;margin:auto;padding:14px;display:grid;grid-template-columns:minmax(0,1.6fr) minmax(260px,1fr);gap:14px}
+.panel{background:var(--panel);border:1px solid #38516d;border-radius:14px;padding:14px;box-shadow:0 8px 25px #0004}
+nav{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:12px}
+button,input{font:inherit;border-radius:9px;border:1px solid #496783;padding:10px}
+button{background:var(--panel2);color:white;font-weight:700;cursor:pointer}
+button:hover{filter:brightness(1.2)}button.primary{background:#176b9a;border-color:#55c9ff}button.gold{background:#8a6411;border-color:var(--gold)}button:disabled{opacity:.45;cursor:not-allowed}
+#game{width:100%;aspect-ratio:16/10;display:block;background:#8bcf8c;border:3px solid #d7e5ee;border-radius:10px;touch-action:none}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0}.row input{min-width:0;flex:1;background:#0e1928;color:white}
+.small{font-size:13px;color:var(--muted)}.stat{color:var(--gold);font-weight:800}.hidden{display:none!important}
+.cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.char{background:#142238;border:1px solid #3c5876;border-radius:10px;padding:9px}.char strong{display:block}.char p{font-size:12px;color:var(--muted);min-height:30px;margin:4px 0}
+#status{min-height:22px;color:#9ee7b0;font-size:13px}
+.controls{display:grid;grid-template-columns:repeat(3,48px);gap:5px;justify-content:center;margin-top:10px}
+.controls button{height:44px;padding:4px;font-size:18px;touch-action:none}
+.controls button:nth-child(1){grid-column:2}.controls button:nth-child(2){grid-column:1;grid-row:2}.controls button:nth-child(3){grid-column:2;grid-row:2}.controls button:nth-child(4){grid-column:3;grid-row:2}
+footer{text-align:center;color:var(--muted);font-size:12px;padding:10px}
+@media(max-width:760px){main{grid-template-columns:1fr}.cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
+</style>
+</head>
+<body>
+<header><h1>SURVIVAL SCHOOL</h1><p>Sobrevive en la escuela · Pixel adventure</p></header>
+<main>
+<section class="panel">
+<nav>
+<button class="primary" onclick="show('play')">▶ JUGAR</button>
+<button onclick="show('characters')">PERSONAJES</button>
+<button onclick="show('shop')">TIENDA</button>
+<button onclick="show('friends')">AMIGOS</button>
+<button onclick="show('online')">MULTIJUGADOR</button>
+</nav>
+<div id="play">
+<div class="row"><span>Jugador: <b id="chosenName">Mariano</b></span><span class="stat">🪙 <b id="coins">100</b></span><span class="small" id="roomLabel">Modo local</span></div>
+<canvas id="game" width="800" height="500" aria-label="Mapa de la escuela"></canvas>
+<div class="row"><button class="primary" onclick="startGame()">EMPEZAR / REINICIAR</button><button onclick="attack()">⚡ HABILIDAD</button></div>
+<div class="controls" aria-label="Controles táctiles">
+<button data-dir="up">▲</button><button data-dir="left">◀</button><button data-dir="down">▼</button><button data-dir="right">▶</button>
+</div>
+<p class="small">Computadora: usa WASD o flechas para moverte y espacio para habilidad. En iPad usa los botones. Recorre salones, pasillos y patio.</p>
+</div>
+<div id="characters" class="hidden"><h2>Personajes</h2><p class="small">Elige un personaje desbloqueado. Cada uno tiene una habilidad visual distinta.</p><div class="cards" id="characterList"></div></div>
+<div id="shop" class="hidden"><h2>🛒 Tienda</h2><p class="small">Compra personajes con las monedas que ganas jugando. Las compras se guardan en este navegador.</p><div class="cards" id="shopList"></div></div>
+<div id="friends" class="hidden"><h2>👥 Amigos</h2><p>Tu código de amigo:</p><div class="row"><input id="myCode" readonly><button onclick="copyCode()">COPIAR</button></div><div class="row"><input id="friendCode" placeholder="Código de tu amigo"><button onclick="addFriend()">AGREGAR</button></div><div id="friendList" class="small">Todavía no agregas amigos.</div><p class="small">Este prototipo guarda tu lista en este navegador. Para que los amigos se conecten desde otros dispositivos, usa Multijugador y comparte el código de sala.</p></div>
+<div id="online" class="hidden"><h2>🌐 Multijugador en línea</h2><p class="small">Conecta Firebase para habilitar salas en tiempo real. Primero crea un proyecto Firebase y pega tu configuración en el bloque indicado al final del archivo.</p><div class="row"><input id="playerName" maxlength="16" placeholder="Tu nombre"><button class="primary" onclick="connectOnline()">CONECTAR</button></div><div class="row"><input id="roomCode" maxlength="8" placeholder="Código de sala (ej. ABC123)"><button onclick="joinRoom()">ENTRAR A SALA</button><button class="gold" onclick="createRoom()">CREAR SALA</button></div><div id="onlineStatus" class="small">Modo sin conexión hasta configurar Firebase.</div><p class="small">Comparte el código de sala con tus amigos. Todos necesitan abrir la misma página y tener conexión.</p></div>
+</section>
+<aside class="panel">
+<h2>📘 Cómo jugar</h2>
+<p>Explora el colegio y usa tu habilidad para lanzar efectos caricaturescos. No hay violencia gráfica.</p>
+<ul><li>Muévete por el mapa.</li><li>Usa ⚡ para activar tu habilidad.</li><li>Gana monedas jugando.</li><li>Compra personajes en la tienda.</li><li>Invita amigos compartiendo el código de sala.</li></ul>
+<div class="panel" style="background:#142238"><b>Estado</b><div id="status">¡Bienvenido a Survival School!</div></div>
+<h3>Tu progreso</h3><p>Personajes desbloqueados: <b id="unlockedCount">1</b>/13</p><p>Partidas jugadas: <b id="games">0</b></p>
+</aside>
+</main>
+<footer>Survival School · Proyecto fan-made escolar · Progreso local guardado en este dispositivo</footer>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getDatabase, ref, set, onValue, onDisconnect, remove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+// 1) Pega aquí la configuración de TU proyecto Firebase.
+// 2) Activa Authentication > Anonymous y Realtime Database en Firebase.
+const firebaseConfig = {
+  apiKey: "PEGA_AQUI_TU_API_KEY",
+  authDomain: "TU-PROYECTO.firebaseapp.com",
+  databaseURL: "https://TU-PROYECTO-default-rtdb.firebaseio.com",
+  projectId: "TU-PROYECTO",
+  appId: "PEGA_AQUI_TU_APP_ID"
+};
+const firebaseReady = !firebaseConfig.apiKey.includes("PEGA_AQUI") && !firebaseConfig.projectId.includes("TU-PROYECTO");
+let db=null, uid=null, room=null, stopRoom=null;
+const names = [
+ ["Mariano","Patada veloz",100],["Emiliano","Destello de lentes",120],["Ian","Balón sorpresa",120],
+ ["Chilo","Hamburguesa voladora",130],["Huero","Huesito caricaturesco",130],["Raúl","Lluvia de banderas",140],
+ ["León","Combo de balón y hamburguesa",150],["Luis","Tormenta de papitas",140],["Santi","Invoca a Sebas",150],
+ ["Sebas","Invoca a Santi",150],["Matías","Lanzamiento de pelota",130],["Pancho","Bola de papel",130],["Víctor","Cinta escolar giratoria",150]
+];
+const colors=["#d98a52","#a66b45","#9b704f","#98623e","#f1c7a0","#e7c3a1","#e9c5a4","#99643f","#e8c4a7","#e8c4a7","#9d684b","#a36c4a","#a36b4a"];
+const $=id=>document.getElementById(id);
+let save=JSON.parse(localStorage.getItem("ss_save")||'{"coins":100,"unlocked":[0],"selected":0,"games":0,"friends":[]}');
+function persist(){localStorage.setItem("ss_save",JSON.stringify(save));refresh()}
+function refresh(){
+ $("coins").textContent=save.coins;$("chosenName").textContent=names[save.selected][0];
+ $("unlockedCount").textContent=save.unlocked.length;$("games").textContent=save.games;
+ $("myCode").value="SS-"+(localStorage.ssCode ||= Math.random().toString(36).slice(2,8).toUpperCase());
+ $("friendList").innerHTML=save.friends.length?save.friends.map(x=>"• "+escapeHtml(x)).join("<br>"):"Todavía no agregas amigos.";
+ renderCharacters();renderShop();
+}
+function escapeHtml(s){return s.replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+window.show=id=>{["play","characters","shop","friends","online"].forEach(x=>$(x).classList.toggle("hidden",x!==id));refresh()};
+function renderCharacters(){$("characterList").innerHTML=names.map((n,i)=>`<div class="char"><strong>${n[0]}</strong><p>${n[1]}</p><button ${save.unlocked.includes(i)?"":"disabled"} onclick="selectCharacter(${i})">${save.selected===i?"SELECCIONADO":"ELEGIR"}</button></div>`).join("")}
+function renderShop(){$("shopList").innerHTML=names.map((n,i)=>`<div class="char"><strong>${n[0]}</strong><p>${n[1]}</p><b>🪙 ${n[2]}</b><br><button ${save.unlocked.includes(i)?"disabled":""} onclick="buyCharacter(${i})">${save.unlocked.includes(i)?"COMPRADO":"COMPRAR"}</button></div>`).join("")}
+window.selectCharacter=i=>{if(!save.unlocked.includes(i))return;save.selected=i;persist();$("status").textContent="Elegiste a "+names[i][0];draw()};
+window.buyCharacter=i=>{if(save.unlocked.includes(i))return;if(save.coins<names[i][2]){$("status").textContent="No tienes monedas suficientes.";return}save.coins-=names[i][2];save.unlocked.push(i);persist();$("status").textContent="¡Compraste a "+names[i][0]+"!";};
+window.copyCode=()=>navigator.clipboard?.writeText($("myCode").value).then(()=>$("status").textContent="Código copiado.").catch(()=>{$("status").textContent="Copia el código manualmente."});
+window.addFriend=()=>{let v=$("friendCode").value.trim().toUpperCase();if(!v||v===$("myCode").value){$("status").textContent="Escribe un código válido.";return}if(!save.friends.includes(v))save.friends.push(v);$("friendCode").value="";persist();$("status").textContent="Código agregado a tu lista."};
+const canvas=$("game"),ctx=canvas.getContext("2d");let player={x:400,y:250},others={},effects=[],running=false;
+function draw(){
+ ctx.clearRect(0,0,800,500);ctx.fillStyle="#8bcf8c";ctx.fillRect(0,0,800,500);
+ // salones y zonas del colegio
+ ctx.fillStyle="#d8c59a";ctx.fillRect(25,25,210,125);ctx.fillRect(565,25,210,125);ctx.fillRect(25,350,210,125);ctx.fillRect(565,350,210,125);
+ ctx.fillStyle="#b7d7e8";ctx.fillRect(270,25,260,90);ctx.fillStyle="#c6b2e0";ctx.fillRect(270,385,260,90);
+ ctx.fillStyle="#34495e";ctx.fillRect(0,210,800,80);ctx.fillRect(360,0,80,500);
+ ctx.fillStyle="#fff";ctx.font="bold 18px Arial";ctx.fillText("SALÓN 1",75,90);ctx.fillText("SALÓN 2",615,90);ctx.fillText("COMEDOR",75,415);ctx.fillText("BIBLIOTECA",605,415);ctx.fillText("PATIO",360,75);ctx.fillText("CANCHA",355,445);
+ // líneas de cancha
+ ctx.strokeStyle="#fff";ctx.lineWidth=3;ctx.strokeRect(290,395,220,75);ctx.beginPath();ctx.moveTo(400,395);ctx.lineTo(400,470);ctx.stroke();
+ // jugador y demás jugadores
+ drawPerson(player.x,player.y,save.selected,names[save.selected][0]);
+ Object.values(others).forEach(o=>{if(o.uid!==uid)drawPerson(o.x||400,o.y||250,1,o.name||"Amigo")});
+ effects.forEach(e=>{ctx.fillStyle=e.color;ctx.beginPath();ctx.arc(e.x,e.y,e.r,0,Math.PI*2);ctx.fill()});
+}
+function drawPerson(x,y,i,label){ctx.fillStyle="#18212b";ctx.fillRect(x-11,y+13,22,6);ctx.fillStyle=colors[i];ctx.fillRect(x-10,y-12,20,23);ctx.fillStyle="#fff";ctx.fillRect(x-9,y-24,18,14);ctx.fillStyle="#27364a";ctx.fillRect(x-9,y-10,18,7);ctx.fillStyle="#17202b";ctx.fillRect(x-8,y+10,6,8);ctx.fillRect(x+2,y+10,6,8);ctx.fillStyle="#fff";ctx.font="12px Arial";ctx.textAlign="center";ctx.fillText(label,x,y-30);ctx.textAlign="left"}
+function move(dx,dy){player.x=Math.max(18,Math.min(782,player.x+dx));player.y=Math.max(18,Math.min(482,player.y+dy));draw();if(room&&db&&uid)set(ref(db,`rooms/${room}/players/${uid}`),{uid,name:names[save.selected][0],x:player.x,y:player.y})}
+window.attack=()=>{effects.push({x:player.x+22,y:player.y,r:10,color:["#ffd166","#5cc8ff","#ff8fab","#c7f464"][save.selected%4]});draw();setTimeout(()=>{effects.shift();draw()},450);$("status").textContent=names[save.selected][1]+" activada.";};
+window.startGame=()=>{running=true;save.games++;save.coins+=10;persist();player={x:400,y:250};draw();$("status").textContent="¡Partida iniciada! Ganaste 10 monedas.";};
+document.addEventListener("keydown",e=>{let k=e.key.toLowerCase();if(["arrowup","w"].includes(k))move(0,-12);else if(["arrowdown","s"].includes(k))move(0,12);else if(["arrowleft","a"].includes(k))move(-12,0);else if(["arrowright","d"].includes(k))move(12,0);else if(k===" ")window.attack()});
+document.querySelectorAll("[data-dir]").forEach(b=>{let d=b.dataset.dir,delta={up:[0,-12],down:[0,12],left:[-12,0],right:[12,0]}[d];b.addEventListener("pointerdown",e=>{e.preventDefault();move(...delta)})});
+window.connectOnline=async()=>{if(!firebaseReady){$("onlineStatus").textContent="Falta configurar Firebase. Sigue los pasos que aparecen debajo del código.";return}try{const app=initializeApp(firebaseConfig);db=getDatabase(app);const auth=getAuth(app);const cred=await signInAnonymously(auth);uid=cred.user.uid;$("onlineStatus").textContent="Conectado. Ya puedes crear o entrar a una sala."}catch(e){$("onlineStatus").textContent="No se pudo conectar: "+e.message}};
+window.createRoom=async()=>{if(!db||!uid){$("onlineStatus").textContent="Primero pulsa CONECTAR.";return}const code=Math.random().toString(36).slice(2,8).toUpperCase();$("roomCode").value=code;await enter(code)};
+window.joinRoom=async()=>{if(!db||!uid){$("onlineStatus").textContent="Primero pulsa CONECTAR.";return}const code=$("roomCode").value.trim().toUpperCase();if(!code){$("onlineStatus").textContent="Escribe el código de sala.";return}await enter(code)};
+async function enter(code){if(stopRoom)stopRoom();room=code;const playersRef=ref(db,`rooms/${room}/players`);await set(ref(db,`rooms/${room}/players/${uid}`),{uid,name:$("playerName").value.trim()||names[save.selected][0],x:player.x,y:player.y});onDisconnect(ref(db,`rooms/${room}/players/${uid}`)).remove();stopRoom=onValue(playersRef,s=>{others=s.val()||{};draw()});$("roomLabel").textContent="Sala "+room;$("onlineStatus").textContent="En sala "+room+". Comparte el código con tus amigos."}
+window.addEventListener("beforeunload",()=>{if(room&&uid&&db)remove(ref(db,`rooms/${room}/players/${uid}`))});
+refresh();draw();
+</script>
+</body>
+</html>
